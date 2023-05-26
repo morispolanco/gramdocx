@@ -1,35 +1,59 @@
-import streamlit as st
-import openai
-import docx2txt
 import os
+import streamlit as st
+import docx
+import magic
+import openai
 
-openai.api_key = os.getenv("openai_api_key")
+def grammar_style_correction(document, api_key):
+    openai.api_key = api_key
 
-def correccion_gramatical(texto):
+    # Hace una llamada a la API de GPT-3 para corregir la gramática y el estilo
     response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=(f"Corregir gramática y estilo en el siguiente texto:\n{texto}\n\nCorrección:"),
-        temperature=0.5,
-        max_tokens=3824,
-        n = 1,
-        stop=None
-
+        engine='text-davinci-003',
+        prompt=document,
+        temperature=0.7,
+        max_tokens=2000,
+        n=1,
+        stop=None,
+        frequency_penalty=0.0,
+        presence_penalty=0.0,
+        best_of=1,
     )
 
-    correccion = response.choices[0].text.strip()
-    return correccion
+    corrected_text = response.choices[0].text.strip()
+    return corrected_text
 
-st.title("Corrección gramatical con GPT-3")
-st.write("Esta aplicación utiliza GPT-3 de OpenAI para corregir la gramática y el estilo en archivos .docx.")
+def main():
+    st.title("Corrección de gramática y estilo con GPT-3")
+    st.write("Esta aplicación utiliza GPT-3 para corregir la gramática y el estilo de un archivo .docx.")
 
-archivo = st.file_uploader("Cargar archivo .docx", type=["docx"])
+    # Obtiene la clave de la API de OpenAI desde una variable de entorno
+    api_key = os.getenv("OPENAI_API_KEY")
 
-if archivo is not None:
-    texto = docx2txt.process(archivo)
-    correccion = correccion_gramatical(texto)
+    if api_key is None:
+        st.error("No se encontró la clave de la API de OpenAI. Asegúrate de configurar la variable de entorno OPENAI_API_KEY.")
+        return
 
-    st.subheader("Texto original:")
-    st.write(texto)
+    # Carga el archivo .docx
+    file = st.file_uploader("Cargar archivo .docx", type=["docx"])
 
-    st.subheader("Texto corregido:")
-    st.write(correccion)
+    if file is not None:
+        file_type = magic.from_buffer(file.read(1024), mime=True)
+
+        if file_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            doc = docx.Document(file)
+            text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+
+            st.write("Texto original:")
+            st.code(text)
+
+            if st.button("Corregir gramática y estilo"):
+                corrected_text = grammar_style_correction(text, api_key)
+
+                st.write("Texto corregido:")
+                st.code(corrected_text)
+        else:
+            st.error("¡Debe cargar un archivo .docx válido!")
+
+if __name__ == '__main__':
+    main()
