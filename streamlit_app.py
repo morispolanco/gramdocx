@@ -10,10 +10,10 @@ def correccion_gramatical(texto):
         engine="text-davinci-003",
         prompt=(f"Corregir gramática y estilo en el siguiente texto:\n{texto}\n\nCorrección:"),
         temperature=0.5,
-        max_tokens=1024,
+        max_tokens=3824,
         n = 1,
-        stop=None,
-        timeout=10,
+        stop=None
+
     )
 
     correccion = response.choices[0].text.strip()
